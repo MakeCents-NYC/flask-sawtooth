@@ -5,10 +5,7 @@
 *.pyc
 # Packages
 *.egg
-<<<<<<< HEAD
-=======
 *.egg-info
->>>>>>> monolith/master
 dist
 build
 eggs
@@ -57,4 +54,3 @@ dump.rdb
 *.idea
 *.*idea
 *.xml
-
