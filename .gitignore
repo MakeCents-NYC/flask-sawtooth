@@ -57,3 +57,6 @@ dump.rdb
 
 # vs code
 .vscode
+
+# Mac .DS_Store
+.DS_Store

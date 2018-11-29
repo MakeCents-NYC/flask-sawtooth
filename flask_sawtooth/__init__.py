@@ -1,2 +1,2 @@
-from . import sawtooth
+from .sawtooth import Sawtooth
 '__all__' == ['Sawtooth']
