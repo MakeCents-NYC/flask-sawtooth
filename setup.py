@@ -2,7 +2,7 @@
 Flask-Sawtooth
 -------------
 
-This is the description for that library
+A Sawtooth utlity library as a Flask extension.
 """
 from setuptools import setup
 
@@ -14,19 +14,17 @@ setup(
     license='GPLv2',
     author='Thomas Veale',
     author_email='tveale@mymakecents.com',
-    description='Utility library for using Hyperledger Sawtooth-Lake Rest-API',
+    description='A Sawtooth utlity library as a Flask extension.',
     long_description=__doc__,
-    py_modules=['sawtooth'],
-    # if you would be using a package instead use packages instead
-    # of py_modules:
-    # packages=['flask_sqlite3'],
     zip_safe=False,
     include_package_data=True,
     platforms='any',
     install_requires=[
         'Flask',
         'sawtooth_sdk',
-        'sawtooth_signing'
+        'sawtooth_signing',
+        'requests',
+        'cbor2'
     ],
     classifiers=[
         'Environment :: Server',

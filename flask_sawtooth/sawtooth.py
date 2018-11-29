@@ -14,6 +14,9 @@ import cbor2
 import base64
 import requests
 import socket
+import random
+import os
+import string
 from random import randint
 from hashlib import sha512
 
@@ -23,12 +26,12 @@ from sawtooth_signing import CryptoFactory
 
 from flask import current_app
 
-from makecents.proto.batch_pb2 import Batch
-from makecents.proto.batch_pb2 import BatchHeader
-from makecents.proto.batch_pb2 import BatchList
-from makecents.proto.transaction_pb2 import Transaction
-from makecents.proto.transaction_pb2 import TransactionHeader
-from makecents.proto.transaction_pb2 import TransactionList
+from sawtooth_sdk.protobuf.batch_pb2 import Batch
+from sawtooth_sdk.protobuf.batch_pb2 import BatchHeader
+from sawtooth_sdk.protobuf.batch_pb2 import BatchList
+from sawtooth_sdk.protobuf.transaction_pb2 import Transaction
+from sawtooth_sdk.protobuf.transaction_pb2 import TransactionHeader
+from sawtooth_sdk.protobuf.transaction_pb2 import TransactionList
 
 # get the app stack
 try:
@@ -36,13 +39,12 @@ try:
 except ImportError:
     from flask import _request_ctx_stack as stack
 
-from .. import exceptions
+import flask_sawtooth.exceptions as exceptions
 
 
 class Sawtooth(object):
     """
-    A Sawtooth utlity library.
-    TODO: make a flask extension?
+    A Sawtooth utlity library as a Flask extension.
     """
 
     def __init__(self, app=None):
@@ -181,19 +183,6 @@ class Sawtooth(object):
                 ctx.sawtooth_signer = self.gen_keys()
             return ctx.sawtooth_signer
 
-    @property
-    def websocket(self):
-        """ Represents a bidirectional stream from the REST-API
-        TODO: add filters
-        """
-        ctx = stack.top
-        if ctx is not None:
-            if not hasattr(ctx, 'sawtooth_state_delta'):
-                ctx.sawtooth_state_delta = self.connect(
-                    server=current_app.config['SAWTOOTH_HOST'])
-                current_app.logger.info('Subscribing to state-deltas.')
-            return ctx.sawtooth_state_delta
-
     @staticmethod
     def gen_addr(mcname: str, family='intkey') -> bytes:
         """Takes in a state identifier (mobile or rng string) and returns
@@ -263,12 +252,12 @@ class Sawtooth(object):
         """
         try:
             # sender, TransactionList([s, ])
-            s, s_id = self.txn_gen('dec',
+            s, _s_id = self.txn_gen('dec',
                                    payload['sender'],
                                    payload['value'],
                                    deps=deps)
             # recipient TransactionList([r, ])
-            r, r_id = self.txn_gen('inc',
+            r, _r_id = self.txn_gen('inc',
                                    payload['receiver'],
                                    payload['value'],
                                    deps=deps)
@@ -496,3 +485,20 @@ class Sawtooth(object):
             except (requests.HTTPError, requests.ConnectionError) as e:
                 current_app.logger.error(e)
                 raise e
+
+    @staticmethod
+    def generate_word():
+        return ''.join([random.choice(string.ascii_letters) for _ in range(0, 20)])
+
+    @staticmethod
+    def generate_word_list(count):
+        if os.path.isfile('/usr/share/dict/words'):
+            with open('/usr/share/dict/words', 'r') as fd:
+                return [x.strip() for x in fd.readlines()[0:count]]
+        else:
+            return [Sawtooth.generate_word() for _ in range(0, count)]
+
+    @staticmethod
+    def generate_sawtooth_name():
+        words = Sawtooth.generate_word_list(1000)
+        return random.choice(words)
