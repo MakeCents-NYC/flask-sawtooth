@@ -27,12 +27,11 @@ setup(
         'cbor2'
     ],
     classifiers=[
-        'Environment :: Server',
+        'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GPLv2 License',
+        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Topic :: Blockchain :: Protobuf :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ]
 )
