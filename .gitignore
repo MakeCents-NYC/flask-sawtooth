@@ -54,3 +54,6 @@ dump.rdb
 *.idea
 *.*idea
 *.xml
+
+# vs code
+.vscode
