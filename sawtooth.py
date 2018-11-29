@@ -30,7 +30,6 @@ from makecents.proto.transaction_pb2 import Transaction
 from makecents.proto.transaction_pb2 import TransactionHeader
 from makecents.proto.transaction_pb2 import TransactionList
 
-
 # get the app stack
 try:
     from flask import _app_ctx_stack as stack
@@ -138,7 +137,7 @@ class Sawtooth(object):
 
         """
         try:
-            #current_app.logger.info('Building connection pool to sawtooth REST.')
+            # current_app.logger.info('Building connection pool to sawtooth REST.')
             s = requests.Session()
             s.headers.update({'Content-Type': 'application/octet-stream'})
             # s.get(server)
@@ -149,7 +148,7 @@ class Sawtooth(object):
     @staticmethod
     def teardown(exception):
         """ Closes the websocket connection to Sawtooth's state-delta."""
-        #current_app.logger.info('Gracefully tearing down resources...')
+        # current_app.logger.info('Gracefully tearing down resources...')
         ctx = stack.top
         if hasattr(ctx, 'sawtooth_state_delta'):
             # gracefully disconnect
@@ -158,7 +157,7 @@ class Sawtooth(object):
             # close the underlying TCP
             ctx.sawtooth_state_delta.close()
             current_app.logger.info('Closed open websockets.')
-        # close the connection pool
+            # close the connection pool
         if hasattr(ctx, 'sawtooth_rest'):
             ctx.sawtooth_rest.close()
             current_app.logger.info('Closed all other connections.')
