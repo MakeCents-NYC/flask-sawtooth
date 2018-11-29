@@ -108,9 +108,6 @@ class TestSawtooth(unittest.TestCase):
         res = stl.connection.get(url)
         self.assertEquals(res.ok, True)
 
-    def test_websocket(self):
-        pass
-
     def test_gen_address(self):
         """Ensures we are building the address correctly"""
         addr = stl.gen_addr('foo', 'intkey')

@@ -10,12 +10,12 @@ from setuptools import setup
 setup(
     name='Flask-Sawtooth',
     version='0.2',
-    url='',
     license='GPLv2',
     author='Thomas Veale',
     author_email='tveale@mymakecents.com',
     description='A Sawtooth utlity library as a Flask extension.',
     long_description=__doc__,
+    url='https://github.com/MakeCents-NYC/flask-sawtooth',
     zip_safe=False,
     include_package_data=True,
     platforms='any',
