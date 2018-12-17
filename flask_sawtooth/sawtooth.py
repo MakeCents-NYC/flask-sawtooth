@@ -322,7 +322,7 @@ class Sawtooth(object):
 
         # Create the header
         txn_header = TransactionHeader(
-            batcher_pubkey=pub if pub is not None else self.signer.get_public_key().as_hex(),
+            batcher_public_key=pub if pub is not None else self.signer.get_public_key().as_hex(),
             dependencies=[] if deps is None else deps,
             family_name='intkey',
             family_version='1.0',
@@ -331,7 +331,7 @@ class Sawtooth(object):
             outputs=[state_store],
             payload_encoding='application/cbor',
             payload_sha512=sha512(payload_bytes).hexdigest(),
-            signer_pubkey=pub if pub is not None else self.signer.get_public_key().as_hex())
+            signer_public_key=pub if pub is not None else self.signer.get_public_key().as_hex())
 
         current_app.logger.info('txn header: {}'.format(txn_header))
 
