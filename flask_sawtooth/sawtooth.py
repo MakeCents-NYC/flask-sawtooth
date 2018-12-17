@@ -329,7 +329,6 @@ class Sawtooth(object):
             inputs=[state_store],
             nonce=str(randint(0, 1000000000)),
             outputs=[state_store],
-            payload_encoding='application/cbor',
             payload_sha512=sha512(payload_bytes).hexdigest(),
             signer_public_key=pub if pub is not None else self.signer.get_public_key().as_hex())
 
