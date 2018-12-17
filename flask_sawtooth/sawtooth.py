@@ -361,7 +361,7 @@ class Sawtooth(object):
         Transactions = [txn.header_signature for txn in txns.transactions]
 
         batch_header = BatchHeader(
-            signer_pubkey=self.signer.get_public_key().as_hex(),
+            signer_public_key=self.signer.get_public_key().as_hex(),
             transaction_ids=Transactions)
 
         # encode batch header

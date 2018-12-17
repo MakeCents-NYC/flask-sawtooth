@@ -9,7 +9,7 @@ from setuptools import setup
 
 setup(
     name='Flask-Sawtooth',
-    version='0.2.4',
+    version='0.2.5',
     license='GPLv2',
     author='Thomas Veale',
     author_email='tveale@mymakecents.com',
