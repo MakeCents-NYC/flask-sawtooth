@@ -9,7 +9,7 @@ from setuptools import setup
 
 setup(
     name='Flask-Sawtooth',
-    version='0.2.5',
+    version='0.2.6',
     license='GPLv2',
     author='Thomas Veale',
     author_email='tveale@mymakecents.com',
@@ -22,8 +22,8 @@ setup(
     packages=['flask_sawtooth'],
     install_requires=[
         'Flask',
-        'sawtooth_sdk',
-        'sawtooth_signing',
+        'sawtooth_sdk>=1.0, <1.1',
+        'sawtooth_signing>=1.0, <1.1',
         'requests',
         'cbor2'
     ],
