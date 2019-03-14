@@ -19,6 +19,7 @@ import os
 import string
 from random import randint
 from hashlib import sha512
+import uuid
 
 from requests import ConnectionError
 from sawtooth_signing import create_context
@@ -32,6 +33,9 @@ from sawtooth_sdk.protobuf.batch_pb2 import BatchList
 from sawtooth_sdk.protobuf.transaction_pb2 import Transaction
 from sawtooth_sdk.protobuf.transaction_pb2 import TransactionHeader
 from sawtooth_sdk.protobuf.transaction_pb2 import TransactionList
+from sawtooth_sdk.protobuf import client_batch_submit_pb2
+from sawtooth_sdk.protobuf.validator_pb2 import Message
+import zmq
 
 # get the app stack
 try:
@@ -63,13 +67,14 @@ class Sawtooth(object):
         app.config.setdefault('SAWTOOTH_HOST', 'localhost')
         app.config.setdefault('SAWTOOTH_PORT', '8008')
         app.config.setdefault('SAWTOOTH_FAMILY', 'intkey')
-        app.config.setdefault('SAWTOOTH_SOCKET_URL',
-                              'ws://{host}:{port}/subscriptions'
-                              .format(host=app.config['SAWTOOTH_HOST'],
-                                      port=app.config['SAWTOOTH_PORT']))
         app.config.setdefault('SAWTOOTH_BASE_URL', 'http://{host}:{port}'
                               .format(host=app.config['SAWTOOTH_HOST'],
                                       port=app.config['SAWTOOTH_PORT']))
+        app.config.setdefault('SAWTOOTH_VALIDATOR_HOST', 'localhost')
+        app.config.setdefault('SAWTOOTH_VALIDATOR_PORT', '4004')
+        app.config.setdefault('SAWTOOTH_VALIDATOR_URL', 'tcp://{host}:{port}'
+                              .format(host=app.config['SAWTOOTH_VALIDATOR_HOST'],
+                                      port=app.config['SAWTOOTH_VALIDATOR_PORT']))
 
         if hasattr(app, 'teardown_appcontext'):
             app.teardown_appcontext(self.teardown)
@@ -104,32 +109,6 @@ class Sawtooth(object):
         return signer
 
     @staticmethod
-    def subscribe(addr_prefixes='1cf126'):
-        """ Opens a websocket connection to Sawtooth's state-delta service.
-        :args addr_prefixes: A filter for certain transaction faminiles.
-
-        :returns ws: A websocket file handle
-        """
-        try:
-            current_app.logger.info('Subscribing to sawtooth state-delta.')
-            r = requests.get(
-                current_app.config['SAWTOOTH_SOCKET_URL'],
-                stream=True)
-            # Extract the underlying socket connection
-            ws = socket.fromfd(
-                r.raw.fileno(),
-                socket.AF_INET,
-                socket.SOCK_STREAM)
-            # Send a subscribe message to state-delta
-            ws.send(json.dumps({
-                'action': 'subscribe',
-                'address_prefixes': addr_prefixes
-            }))
-            return ws
-        except ConnectionError as e:
-            current_app.logger.fatal(e)
-
-    @staticmethod
     def connect():
         """ Builds a reusable connection pool based on urllib3's connection pooling.
 
@@ -152,17 +131,10 @@ class Sawtooth(object):
         """ Closes the websocket connection to Sawtooth's state-delta."""
         # current_app.logger.info('Gracefully tearing down resources...')
         ctx = stack.top
-        if hasattr(ctx, 'sawtooth_state_delta'):
-            # gracefully disconnect
-            ctx.sawtooth_state_delta.send(
-                json.dumps({'action': 'unsubscribe'}))
-            # close the underlying TCP
-            ctx.sawtooth_state_delta.close()
-            current_app.logger.info('Closed open websockets.')
             # close the connection pool
         if hasattr(ctx, 'sawtooth_rest'):
             ctx.sawtooth_rest.close()
-            current_app.logger.info('Closed all other connections.')
+            current_app.logger.info('Closed sawtooth rest api connections.')
 
     @property
     def connection(self):
@@ -452,38 +424,52 @@ class Sawtooth(object):
             current_app.logger.error(e)
             raise e
 
-    # TODO: refactor this into a batch getting utility
-    def expand_sawtooth_link(self, batch_id, batch_id_array=None):
-        """ Used to retrieve the current list of batches from sawtooth.
-        Args:
-            :arg batch_id: A url to be polled for information from sawtooth
-            :arg batch_id_array: an array of batches to retrieve. for 15+ batches
-        Returns:
-            a rolled json object with the response.
-        """
-        if batch_id_array is None:
-            url = current_app.config['SAWTOOTH_BASE_URL'] \
-                + '/batch_statuses?id={}'.format(batch_id)
-            req = requests.Request('GET', url)
-            prepped = self.connection.prepare_request(req)
-            try:
-                r = self.connection.send(prepped)
-                return r
-            except requests.HTTPError as e:
-                raise e
-        else:
-            # Returns an array of batch envelopes.
-            # this should incease the effiecency of updating the database if we can
-            # do just one request to blockchain instead of n.
-            url = current_app.config['SAWTOOTH_BASE_URL'] + '/batch_statuses'
-            req = requests.Request('POST', url, data=batch_id_array)
-            prepped = self.connection.prepare_request(req)
-            try:
-                r = self.connection.send(prepped)
-                return r
-            except (requests.HTTPError, requests.ConnectionError) as e:
-                current_app.logger.error(e)
-                raise e
+    def watch_batch(self, batch_id):
+        # Setup a connection to the validator
+        ctx = zmq.Context()
+        socket = ctx.socket(zmq.DEALER)
+        socket.connect(current_app.config['SAWTOOTH_VALIDATOR_URL'])
+
+        # Construct the request
+        request = client_batch_submit_pb2.ClientBatchStatusRequest(
+                batch_ids=[batch_id], wait=True).SerializeToString()
+
+        # Construct the message wrapper
+        correlation_id = batch_id + uuid.uuid4().hex # This must be unique for all in-process requests
+        msg = Message(
+            correlation_id=correlation_id,
+            message_type=Message.CLIENT_BATCH_STATUS_REQUEST,
+            content=request
+        )
+
+        # Send the request
+        socket.send_multipart([msg.SerializeToString()])
+
+        # Receive the response
+        resp = socket.recv_multipart()[-1]
+
+        # Parse the message wrapper
+        msg = Message()
+        msg.ParseFromString(resp)
+
+        # Validate the response type
+        if msg.message_type != Message.CLIENT_BATCH_STATUS_RESPONSE:
+            current_app.logger.error("Unexpected response message type")
+            return
+
+        # Parse the response
+        response = client_batch_submit_pb2.ClientBatchStatusResponse()
+        response.ParseFromString(msg.content)
+
+        # Validate the response status
+        if response.status != client_batch_submit_pb2.ClientBatchSubmitResponse.OK:
+            current_app.logger.error("watch batch status failed: {}".format(response.response_message))
+            return
+
+        # Close the connection to the validator
+        socket.close()
+
+        return client_batch_submit_pb2.ClientBatchStatus.Status.Name(response.batch_statuses[0].status)
 
     @staticmethod
     def generate_word():

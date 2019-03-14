@@ -2,17 +2,17 @@
 Flask-Sawtooth
 -------------
 
-A Sawtooth utlity library as a Flask extension.
+A Sawtooth utility library as a Flask extension.
 """
 from setuptools import setup
 
 
 setup(
     name='Flask-Sawtooth',
-    version='0.2.6',
+    version='0.3.0',
     license='GPLv2',
-    author='Thomas Veale',
-    author_email='tveale@mymakecents.com',
+    author='Thomas Veale, Bo Yao',
+    author_email='tveale@mymakecents.com, byao@mymakecents.com',
     description='A Sawtooth utlity library as a Flask extension.',
     long_description=__doc__,
     url='https://github.com/MakeCents-NYC/flask-sawtooth',
@@ -25,7 +25,8 @@ setup(
         'sawtooth_sdk>=1.0, <1.1',
         'sawtooth_signing>=1.0, <1.1',
         'requests',
-        'cbor2'
+        'cbor2',
+        'pyzmq'
     ],
     tests_require=[
 
