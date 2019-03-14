@@ -9,6 +9,12 @@ wheel = "*"
 
 [packages]
 twine = "*"
+flask = "*"
+sawtooth-sdk = "<1.1,>=1.0"
+sawtooth-signing = "<1.1,>=1.0"
+requests = "*"
+cbor2 = "*"
+pyzmq = "*"
 
 [requires]
 python_version = "3.6"
